@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live TV - FoxFlix</title>
+    <link rel="stylesheet" href="style.css?v=1.0.2">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        if ('caches' in window) {
+            caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
+        }
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(regs => {
+                for (let reg of regs) reg.unregister();
+            });
+        }
+    </script>
+    <style>
+        .live-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            padding: 100px 4% 50px 4%;
+            /* Top padding for fixed navbar */
+        }
+
+        .channel-card {
+            background: #222;
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+            position: relative;
+        }
+
+        .channel-card iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .channel-name {
+            padding: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .live-badge {
+            background: red;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .channel-placeholder {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .channel-placeholder:hover {
+            background: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar scrolled">
+        <a href="/" class="logo focusable" tabindex="0">
+            <img src="logo.png" alt="FoxFlix" style="height: 50px; vertical-align: middle;">
+        </a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link focusable" tabindex="0">Home</a>
+            <a href="live.html" class="nav-link active focusable" tabindex="0">Live TV</a>
+        </div>
+    </nav>
+
+    <div class="live-grid" id="liveGrid">
+        <p style="color: grey;">Loading Channels...</p>
+    </div>
+
+    <script src="app.js?v=1.0.2"></script>
+    <script>
+        async function loadChannels() {
+            const grid = document.getElementById('liveGrid');
+            try {
+                const res = await fetch('/api/livetv');
+                const channels = await res.json();
+
+                grid.innerHTML = '';
+                channels.forEach(ch => {
+                    const card = document.createElement('div');
+                    card.className = 'channel-card focusable';
+                    card.tabIndex = 0;
+
+                    // Click-to-Play Card
+                    card.innerHTML = `
+                        <div class="channel-placeholder" onclick="playChannel(this, '${ch.url}')">
+                            <i class="fas fa-play-circle" style="font-size: 50px; color: white;"></i>
+                            ${ch.logo ? `<img src="${ch.logo}" style="position:absolute; top:10px; right:10px; height:30px;">` : ''}
+                        </div>
+                    `;
+
+                    // Title below
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'channel-name';
+                    titleDiv.innerHTML = `${ch.name} <span class="live-badge">LIVE</span>`;
+
+                    const container = document.createElement('div');
+                    container.style.backgroundColor = '#141414';
+                    container.style.borderRadius = '8px';
+                    container.style.overflow = 'hidden';
+                    container.appendChild(card);
+                    container.appendChild(titleDiv);
+
+                    grid.appendChild(container);
+                });
+
+                if (window.spatialNav) {
+                    setTimeout(() => window.spatialNav.autoFocus(), 100);
+                }
+            } catch (e) {
+                console.error(e);
+                grid.innerHTML = '<p>Error loading Live TV.</p>';
+            }
+        }
+
+        function playChannel(element, url) {
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.allowFullscreen = true;
+            iframe.allow = "autoplay; encrypted-media";
+
+            const card = element.parentNode;
+            card.innerHTML = '';
+            card.appendChild(iframe);
+        }
+
+        loadChannels();
+    </script>
+</body>
+
+</html>

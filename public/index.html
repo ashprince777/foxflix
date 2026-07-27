@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoxFlix</title>
+    <link rel="stylesheet" href="style.css?v=1.0.2">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e50914">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FoxFlix">
+    <link rel="apple-touch-icon" href="logo.png">
+    <script>
+        // Automatic cache purge to clear stale JavaScript/CSS and prevent background sound issues
+        if ('caches' in window) {
+            caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
+        }
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(regs => {
+                for (let reg of regs) reg.unregister();
+            });
+            navigator.serviceWorker.register('sw.js?v=1.0.2');
+        }
+    </script>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar">
+        <a href="/" class="logo focusable" tabindex="0">
+            <img src="logo.png" alt="FoxFlix" style="height: 50px; vertical-align: middle;">
+        </a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link active focusable" tabindex="0">Home</a>
+            <a href="live.html" class="nav-link focusable" tabindex="0">Live TV</a>
+        </div>
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-input focusable" tabindex="0" placeholder="Search titles, genres...">
+        </div>
+        <div style="display:flex; align-items:center;">
+            <button class="btn btn-secondary focusable" id="installAppBtn" tabindex="0" title="Add FoxFlix App Icon to TV Home Screen" style="margin-left: 12px; padding: 6px 12px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; border-radius: 20px; background: rgba(229, 9, 20, 0.2); border: 1px solid #e50914; color: white;">
+                <i class="fas fa-plus-square" style="color: #e50914;"></i> Add App
+            </button>
+            <div class="logo focusable" tabindex="0" id="settingsBtn" style="margin-left: 12px; margin-right: 0;">
+                <i class="fas fa-cog"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Genre Filter Bar -->
+    <div class="genre-bar" id="genreFilters">
+        <!-- Genre chips injected dynamically -->
+    </div>
+
+    <!-- Simple Hero Header -->
+    <header class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title" id="featuredTitle">Local Streaming</h1>
+            <p class="hero-desc">Watch your personal collection smoothly on any device in your network.</p>
+            <button class="btn btn-play focusable" tabindex="0" id="playFeatured"><i class="fas fa-play"></i> Play</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="mainContent">
+        <!-- Continue Watching Section -->
+        <section id="continueWatchingSection" style="display: none; padding: 0 4%;">
+            <h2 class="section-title" style="margin-top: 20px;"><i class="fas fa-history" style="color: #e50914; margin-right: 8px;"></i> Continue Watching</h2>
+            <div id="continueWatchingGrid" class="movie-grid"></div>
+        </section>
+
+        <!-- Main Movies & Categories Grid -->
+        <div id="movieGrid" style="padding: 0 4%;">
+            <!-- Categories and Movie cards will be injected here -->
+            <div class="movie-card" style="display: flex; align-items: center; justify-content: center; height: 100px;">
+                <p style="color: grey;">Loading movies...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Rich Movie Details Modal -->
+    <div class="details-modal-overlay" id="detailsModal">
+        <div class="details-modal-content">
+            <button class="details-close-btn focusable" tabindex="0" id="closeDetailsModal">&times;</button>
+            <div class="details-backdrop" id="detailsBackdrop">
+                <div class="details-gradient"></div>
+                <div class="details-header-content">
+                    <h1 id="detailsTitle">Movie Title</h1>
+                    <div class="details-meta">
+                        <span id="detailsYear" class="details-badge">2024</span>
+                        <span id="detailsRating" class="details-badge rating-badge"><i class="fas fa-star"></i> 8.5</span>
+                        <span id="detailsCategory" class="details-badge">Movie</span>
+                    </div>
+                    <div class="details-genres" id="detailsGenres"></div>
+                </div>
+            </div>
+            <div class="details-body">
+                <p id="detailsPlot" class="details-plot">Movie synopsis...</p>
+                <div class="details-actions">
+                    <button class="btn btn-play focusable" tabindex="0" id="detailsPlayBtn"><i class="fas fa-play"></i> Play Movie</button>
+                    <button class="btn btn-secondary focusable" tabindex="0" id="detailsResumeBtn" style="display:none;"><i class="fas fa-history"></i> Resume</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Player Overlay -->
+    <div class="player-overlay" id="playerOverlay">
+        <div class="player-header">
+            <button class="close-btn focusable" tabindex="0" id="closePlayer">&times;</button>
+            <span id="playerTitle" style="margin-left: 20px; font-size: 1.2rem;"></span>
+        </div>
+
+        <div class="video-container">
+            <video id="videoPlayer" autoplay></video>
+
+            <!-- Format Warning / Fallback Overlay -->
+            <div id="format-warning" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(18,18,18,0.95); padding:25px; border-radius:12px; text-align:center; z-index:1500; border:1px solid #e50914; max-width:85%; color:white; box-shadow: 0 15px 40px rgba(0,0,0,0.9);"></div>
+
+            <!-- Binge Watch Next Episode Overlay -->
+            <div class="next-episode-overlay" id="nextEpisodeOverlay">
+                <div class="next-episode-card">
+                    <div class="next-ep-header">
+                        <span class="next-label">UP NEXT</span>
+                        <span id="nextEpCountdown" class="countdown-badge">5s</span>
+                    </div>
+                    <h3 id="nextEpTitle" class="next-ep-title">Episode Title</h3>
+                    <p id="nextEpShowName" class="next-ep-show">Show Name</p>
+                    <div class="next-ep-actions">
+                        <button class="btn btn-play focusable" tabindex="0" id="btnPlayNextNow"><i class="fas fa-play"></i> Play Now</button>
+                        <button class="btn btn-secondary focusable" tabindex="0" id="btnCancelNext">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Controls -->
+            <div class="custom-controls" id="customControls">
+                <!-- Progress Bar -->
+                <div class="progress-container focusable" tabindex="0" id="progressContainer">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+
+                <div class="controls-row">
+                    <div class="controls-left">
+                        <button class="ctrl-btn focusable" tabindex="0" id="btnPlayPause"><i class="fas fa-pause"></i></button>
+
+                        <button class="ctrl-btn focusable" tabindex="0" id="btnRewind"><i class="fas fa-rotate-left"></i> 10s</button>
+                        <button class="ctrl-btn focusable" tabindex="0" id="btnForward">10s <i class="fas fa-rotate-right"></i></button>
+
+                        <div class="volume-container">
+                            <button class="ctrl-btn focusable" tabindex="0" id="btnMute"><i class="fas fa-volume-up"></i></button>
+                            <input type="range" id="volumeSlider" class="focusable" tabindex="0" min="0" max="1" step="0.1" value="1">
+                        </div>
+
+                        <span class="time-display" id="timeDisplay">00:00 / 00:00</span>
+                    </div>
+
+                    <div class="controls-right">
+                        <button class="ctrl-btn focusable" tabindex="0" id="btnAudio" title="Switch Audio Track" style="display:none;"><i
+                                class="fas fa-music"></i></button>
+                        <button class="ctrl-btn focusable" tabindex="0" id="btnSubtitles" title="Subtitles & Subtitle Downloader"><i
+                                class="fas fa-closed-captioning"></i></button>
+                        <button class="ctrl-btn focusable" tabindex="0" id="btnPip" title="Picture-in-Picture"><i
+                                class="fas fa-clone"></i></button>
+                        <button class="ctrl-btn focusable" tabindex="0" id="btnFullscreen"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); z-index:2000; align-items:flex-start; justify-content:center; backdrop-filter:blur(8px); padding-top:40px; overflow-y:auto;">
+        <div style="background:#181818; border-radius:12px; width:94%; max-width:380px; color:white; border:1px solid rgba(255,255,255,0.12); box-shadow:0 20px 60px rgba(0,0,0,0.95); margin:0 auto 30px auto; overflow:hidden;">
+
+            <!-- Header sticky -->
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:13px 16px; border-bottom:1px solid rgba(255,255,255,0.08); background:#181818;">
+                <h2 style="font-size:0.95rem; font-weight:700; margin:0;">⚙️ Settings</h2>
+                <button class="btn focusable" tabindex="0" onclick="document.getElementById('settingsModal').style.display='none'" style="background:rgba(255,255,255,0.08); border:none; color:#ccc; font-size:1.1rem; cursor:pointer; padding:3px 9px; border-radius:5px; line-height:1;">&times;</button>
+            </div>
+
+            <!-- Body -->
+            <div style="padding:13px 16px;">
+
+                <!-- Streaming URL -->
+                <div style="margin-bottom:11px;">
+                    <label style="display:block; margin-bottom:4px; color:#aaa; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.5px;">Local Streaming URL</label>
+                    <div style="display:flex; gap:4px;">
+                        <input type="text" id="lanIpDisplay" readonly
+                            style="flex:1; min-width:0; background:#111; border:1px solid #2a2a2a; color:#ddd; padding:5px 7px; border-radius:4px; font-size:0.7rem;">
+                        <button class="btn btn-secondary focusable" tabindex="0" style="font-size:0.65rem; padding:4px 7px; flex-shrink:0;"
+                            onclick="navigator.clipboard.writeText(document.getElementById('lanIpDisplay').value)">Copy</button>
+                        <button class="btn btn-secondary focusable" tabindex="0" id="testConnBtn" style="font-size:0.65rem; padding:4px 7px; flex-shrink:0;">Test</button>
+                    </div>
+                    <div id="firewallHintContainer" style="margin-top:4px;"></div>
+                </div>
+
+                <!-- Movies Folder -->
+                <div style="margin-bottom:11px;">
+                    <label style="display:block; margin-bottom:4px; color:#aaa; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.5px;">Movies Folder Path</label>
+                    <div style="display:flex; gap:6px;">
+                        <input type="text" id="moviePathInput" class="focusable" tabindex="0"
+                            style="flex:1; min-width:0; box-sizing:border-box; background:#111; border:1px solid #2a2a2a; color:white; padding:7px 9px; border-radius:4px; font-size:0.8rem;"
+                            placeholder="e.g. D:\Movies">
+                        <button type="button" class="btn btn-secondary focusable" id="browseFolderBtn" tabindex="0"
+                            style="font-size:0.72rem; padding:6px 12px; flex-shrink:0; background:rgba(255,255,255,0.1); border:1px solid #333; color:white; border-radius:4px; cursor:pointer;">📁 Browse...</button>
+                    </div>
+                </div>
+
+                <!-- QR Code — compact inline row -->
+                <div style="display:flex; align-items:center; gap:10px; background:#111; border:1px solid #2a2a2a; border-radius:7px; padding:9px 11px; margin-bottom:14px;">
+                    <div id="qrcode" style="background:white; padding:3px; border-radius:3px; line-height:0; flex-shrink:0;"></div>
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:#fff; margin-bottom:2px;">📱 Mobile Access</div>
+                        <div style="font-size:0.65rem; color:#888; line-height:1.4;">Scan to open FoxFlix on your phone or use as remote control</div>
+                    </div>
+                </div>
+
+                <!-- Add to Home Screen Option -->
+                <div style="margin-bottom:14px;">
+                    <button class="btn btn-secondary focusable" tabindex="0" id="settingsAddAppBtn"
+                        style="width:100%; box-sizing:border-box; background:rgba(229, 9, 20, 0.15); border:1px solid #e50914; color:white; padding:8px 10px; border-radius:6px; font-size:0.78rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <i class="fas fa-plus-square" style="color:#e50914;"></i> Add FoxFlix Icon to TV Home Screen
+                    </button>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-secondary focusable" tabindex="0"
+                        onclick="document.getElementById('settingsModal').style.display='none'"
+                        style="flex:1; font-size:0.8rem; padding:9px 0; border-radius:5px;">Cancel</button>
+                    <button class="btn btn-play focusable" tabindex="0" id="saveSettingsBtn"
+                        style="flex:2; font-size:0.83rem; padding:9px 0; font-weight:700; background:#e50914; color:white; border:none; border-radius:5px; cursor:pointer;">
+                        💾 Save &amp; Rescan
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Add to Home Screen Modal Guide -->
+    <div class="details-modal-overlay" id="installModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); z-index:3000; backdrop-filter:blur(8px); align-items:center; justify-content:center;">
+        <div style="background:#181818; border-radius:14px; width:92%; max-width:440px; color:white; border:1px solid rgba(255,255,255,0.15); box-shadow:0 25px 70px rgba(0,0,0,0.95); padding: 24px; position:relative; box-sizing:border-box;">
+            <button class="details-close-btn focusable" tabindex="0" id="closeInstallModal" style="position:absolute; top:12px; right:15px; background:none; border:none; color:#ccc; font-size:1.5rem; cursor:pointer;">&times;</button>
+            <div style="text-align:center; margin-bottom: 16px;">
+                <img src="logo.png" alt="FoxFlix" style="height: 50px; margin-bottom: 8px;">
+                <h2 style="font-size: 1.15rem; margin: 0; font-weight: 700; color: #fff;">Add FoxFlix App Icon to TV Home</h2>
+                <p style="font-size: 0.8rem; color: #aaa; margin-top: 5px;">Launch FoxFlix directly from your TV or browser home screen like a native app!</p>
+            </div>
+
+            <div style="background:#111; border:1px solid #2a2a2a; border-radius:8px; padding:12px 14px; margin-bottom:18px; text-align:left;">
+                <div style="font-size:0.83rem; font-weight:600; color:#e50914; margin-bottom:6px;"><i class="fas fa-tv"></i> Jio STB / Smart TV Remote Setup:</div>
+                <ol style="margin: 0; padding-left: 18px; font-size:0.78rem; color:#ccc; line-height: 1.6;">
+                    <li>Press <b>Menu ≡</b> or <b>Bookmark ⭐</b> on your Jio TV remote.</li>
+                    <li>Select <b>"Add to Home Screen"</b> or <b>"Bookmark Page"</b>.</li>
+                    <li>Confirm to place the FoxFlix icon on your TV launcher!</li>
+                </ol>
+                
+                <div style="font-size:0.83rem; font-weight:600; color:#e50914; margin: 10px 0 4px 0;"><i class="fas fa-mobile-alt"></i> Mobile &amp; Desktop Browser:</div>
+                <p style="font-size:0.78rem; color:#ccc; margin:0;">Tap browser menu (⋮ / ⎕↑) and select <b>"Add to Home screen"</b> or <b>"Install App"</b>.</p>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-play focusable" tabindex="0" id="triggerPwaPromptBtn" style="flex:1; padding: 10px 0; font-size:0.82rem; font-weight:700;"><i class="fas fa-download"></i> Add App Icon</button>
+                <button class="btn btn-secondary focusable" tabindex="0" id="dismissInstallModalBtn" style="flex:1; padding: 10px 0; font-size:0.82rem;">Got it!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remote Control UI (Mobile Only) -->
+    <div id="remoteOverlay"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#141414; z-index:5000; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+        <div class="logo" style="margin-bottom: 40px;">
+            <img src="logo.png" alt="FoxFlix" style="height: 60px;">
+        </div>
+        <h2 id="remoteMovieTitle" style="color: white; margin-bottom: 10px; text-align: center;">No Movie Playing</h2>
+        <div id="remoteProgress"
+            style="width: 100%; height: 6px; background: #333; border-radius: 3px; margin-bottom: 20px;">
+            <div id="remoteProgressBar" style="width: 0%; height: 100%; background: #e50914; border-radius: 3px;"></div>
+        </div>
+        <div style="display:flex; gap:30px; margin-bottom:40px;">
+            <button class="ctrl-btn" id="remoteRewind" style="font-size: 30px;"><i
+                    class="fas fa-rotate-left"></i></button>
+            <button class="ctrl-btn" id="remotePlayPause" style="font-size: 50px;"><i class="fas fa-play"></i></button>
+            <button class="ctrl-btn" id="remoteForward" style="font-size: 30px;"><i
+                    class="fas fa-rotate-right"></i></button>
+        </div>
+        <div style="width: 100%; display: flex; align-items: center; gap: 15px;">
+            <i class="fas fa-volume-down" style="color: #aaa;"></i>
+            <input type="range" id="remoteVolume" min="0" max="1" step="0.1" value="1" style="flex:1;">
+            <i class="fas fa-volume-up" style="color: #aaa;"></i>
+        </div>
+        <p style="color: #666; margin-top: 50px; font-size: 0.9rem;">Connected to PC</p>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="app.js?v=1.0.2"></script>
+</body>
+
+</html>

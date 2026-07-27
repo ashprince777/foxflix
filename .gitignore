@@ -1,0 +1,8 @@
+node_modules/
+dist/
+cache/
+movies/
+*.db
+*.log
+.DS_Store
+Thumbs.db

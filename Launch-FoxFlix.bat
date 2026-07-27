@@ -1,0 +1,3 @@
+@echo off
+title Launching FoxFlix Windows Player...
+start "" "%~dp0dist\win-unpacked\FoxFlix.exe"
